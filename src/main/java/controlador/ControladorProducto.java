@@ -6,8 +6,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import vista.Vista;
 import java.util.List;
+import javax.swing.JFrame;
 import javax.swing.JTable;
 import javax.swing.JOptionPane;
+import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
 /*
@@ -17,11 +19,10 @@ create database testdb;
 use testdb;
 
 CREATE TABLE Productos (
-    codigo int AUTO_INCREMENT,
-    nombre varchar(255),
-    precio double,
-    inventario int,
-    primary key(codigo)
+    codigo int AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    nombre varchar(255) NOT NULL,
+    precio double NOT NULL,
+    inventario int NOT NULL
 );
 
 insert into Productos (codigo, nombre, precio, inventario) values (1, "Manzanas", 5000.0, 25);
@@ -62,32 +63,33 @@ public class ControladorProducto implements ActionListener {
 
         List<Producto> listaProductos = (List<Producto>) repositorio.findAll();
         JTable tabla = vista.getTblProductos();
+        DefaultTableModel tableModel = (DefaultTableModel) tabla.getModel();
 
-        System.out.println("filas tabla " + tabla.getRowCount());
-        System.out.println("filas DB " + listaProductos.size());
-
-        for (int i = 0; i < tabla.getRowCount(); i++) {
-            tabla.setValueAt("", i, 0);
-            tabla.setValueAt(0, i, 1);
-            tabla.setValueAt(0, i, 2);
+        // Si hay más productos que filas de la tabla en la vista, se agregan para la visualización
+        while (listaProductos.size() > tableModel.getRowCount()) {
+            tableModel.addRow(new Object[]{"", 0, 0});
         }
 
-        int row = 0;
-        for (Producto s : listaProductos) {
-            tabla.setValueAt(s.getNombre(), row, 0);
-            tabla.setValueAt(s.getPrecio(), row, 1);
-            tabla.setValueAt(s.getInventario(), row, 2);
-            row++;
+        // Si hay más filas de la tabla que productos, se eliminan para la visualización
+        while (listaProductos.size() < tableModel.getRowCount()) {
+            tableModel.removeRow(tableModel.getRowCount() - 1);
         }
+
+        for (int row = 0; row < listaProductos.size(); row++) {
+            tabla.setValueAt(listaProductos.get(row).getNombre(), row, 0);
+            tabla.setValueAt(listaProductos.get(row).getPrecio(), row, 1);
+            tabla.setValueAt(listaProductos.get(row).getInventario(), row, 2);
+        }
+
         return listaProductos;
     }
 
     // Se verifica si el producto se encuentra en la base de datos, en caso tal que si se encuentre
     // se retorna el codigo (Id) del producto, sino se encuentra se retorna -1
     public Long verificarExistencia(String nombre) {
-        List<Producto> resultado = listarProductos();
+        List<Producto> listaProductos = listarProductos();
 
-        for (Producto producto : resultado) {
+        for (Producto producto : listaProductos) {
             if (producto.getNombre().equals(nombre)) {
                 return producto.getCodigo();
             }
@@ -99,7 +101,8 @@ public class ControladorProducto implements ActionListener {
     public boolean borrarProducto() {
 
         JTable tabla = vista.getTblProductos();
-        String nombreProducto = (String) tabla.getModel().getValueAt(tabla.getSelectedRow(), 0);
+        DefaultTableModel tableModel = (DefaultTableModel) tabla.getModel();
+        String nombreProducto = (String) tableModel.getValueAt(tabla.getSelectedRow(), 0);
 
         // Se verifica primero si existe el producto para proceder a borrarlo
         Long codigoProducto = verificarExistencia(nombreProducto);
@@ -119,29 +122,33 @@ public class ControladorProducto implements ActionListener {
 
         String informe;
         double valorInventario = 0.0;
-        int codigo_mayor = Integer.parseInt(listaProductos.get(1).getCodigo() + "");
-        int codigo_menor = Integer.parseInt(listaProductos.get(1).getCodigo() + "");
         double promedio = 0.0;
         double contProductos = 0;
 
-        for (Producto p : listaProductos) {
-            valorInventario += p.getPrecio() * p.getInventario();
-            promedio += p.getPrecio();
+        Producto pMayor = listaProductos.get(0);
+        Producto pMenor = listaProductos.get(0);
+
+        for (int indice = 0; indice < listaProductos.size(); indice++) {
+
+            valorInventario += listaProductos.get(indice).getPrecio() * listaProductos.get(indice).getInventario();
+            promedio += listaProductos.get(indice).getPrecio();
             contProductos++;
 
             // se obtiene el código del producto con el precio mayor
-            if (listaProductos.get(codigo_mayor).getPrecio() < p.getPrecio()) {
-                codigo_mayor = Integer.parseInt(p.getCodigo() + "");
+            if (pMayor.getPrecio() < listaProductos.get(indice).getPrecio()) {
+                pMayor = listaProductos.get(indice);
             }
 
             // se obtiene el código del producto con el precio menor
-            if (listaProductos.get(codigo_menor).getPrecio() > p.getPrecio()) {
-                codigo_menor = Integer.parseInt(p.getCodigo() + "");
+            if (pMenor.getPrecio() > listaProductos.get(indice).getPrecio()) {
+                pMenor = listaProductos.get(indice);
             }
         }
-        String productoMayor = repositorio.findById(Long.parseLong(codigo_mayor + "")).get().getNombre();
-        String productoMenor = repositorio.findById(Long.parseLong(codigo_menor + "")).get().getNombre();
-        informe = String.format("Producto precio mayor: %s\n Producto precio menor: %s\n Promedio precios: %.1f\n Valor del inventario: %.1f", productoMayor, productoMenor, promedio / contProductos, valorInventario);
+
+        // Impresión del reporte
+        String productoMayor = repositorio.findById(Long.parseLong(pMayor.getCodigo() + "")).get().getNombre();
+        String productoMenor = repositorio.findById(Long.parseLong(pMenor.getCodigo() + "")).get().getNombre();
+        informe = String.format("Producto precio mayor: %s\nProducto precio menor: %s\nPromedio precios: %.1f\n Valor del inventario: %.1f", productoMayor, productoMenor, promedio / contProductos, valorInventario);
         JOptionPane.showMessageDialog(vista, informe, "Informe", JOptionPane.INFORMATION_MESSAGE);
     }
 
@@ -150,44 +157,72 @@ public class ControladorProducto implements ActionListener {
     public boolean agregarProducto(String nombre, double precio, int inventario) {
 
         Long codigoProducto = verificarExistencia(nombre);
-        List<Producto> listaProductos = listarProductos();
-        JTable tabla = vista.getTblProductos();
-        DefaultTableModel tableModel = (DefaultTableModel) tabla.getModel();
-        for (Producto s : listaProductos) {
-            tableModel.addRow(new Object[]{s.getNombre(), s.getPrecio(), s.getInventario()});
-        }
+
         if (codigoProducto != -1L) {
             return false;
         } else {
+            // Se guarda el producto en la base de datos
             Producto prod = Producto.crearProductos(nombre, precio, inventario);
             repositorio.save(prod);
             return true;
         }
     }
 
-    /*
     // Si se puede actualizar producto se debe retornar true, en otro caso false
-    public boolean actualizarProducto(String nombre, double precio, int inventario) {
-        Long codigoProducto = verificarExistencia(nombre);
-        if ( codigoProducto != -1L) {
-            listaProductos.replace(codigo, new Producto(codigo, nombre, precio, inventario));
+    public boolean actualizarProductoParte1() {
+        JTable tabla = vista.getTblProductos();
+        DefaultTableModel tableModel = (DefaultTableModel) tabla.getModel();
+        if (tabla.getSelectedRow() != -1) {
+            String nombreProducto = (String) tableModel.getValueAt(tabla.getSelectedRow(), 0);
+            Double precioProducto = (Double) tableModel.getValueAt(tabla.getSelectedRow(), 1);
+            Integer inventarioProducto = (Integer) tableModel.getValueAt(tabla.getSelectedRow(), 2);
+
+            JFrame frameActualizar = vista.getJFrame1();
+            frameActualizar.setVisible(true);
+
+            JTextField tf1 = vista.getTxtNombre1();
+            tf1.setText(nombreProducto);
+            JTextField tf2 = vista.getTxtPrecio1();
+            tf2.setText(precioProducto + "");
+            JTextField tf3 = vista.getTxtInventario1();
+            tf3.setText(inventarioProducto + "");
+
             return true;
         } else {
             return false;
         }
-
     }
-     */
+
+    public boolean actualizarProductoParte2() {
+
+        JTable tabla = vista.getTblProductos();
+        DefaultTableModel tableModel = (DefaultTableModel) tabla.getModel();
+        String nombreProducto = (String) tableModel.getValueAt(tabla.getSelectedRow(), 0);
+
+        Long codigoProducto = verificarExistencia(nombreProducto);
+
+        if (codigoProducto != -1L) {
+            Producto p = repositorio.findById(codigoProducto).get();
+            p.setPrecio(Double.parseDouble(vista.getTxtPrecio1().getText()));
+            p.setInventario(Integer.parseInt(vista.getTxtInventario1().getText()));
+            repositorio.save(p);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
 
+        // Procedimiento a realizar cuando se presiona el botón de agregar producto
         if (e.getSource() == vista.getBtnAgregarProducto()) {
             if (vista.getTxtNombre().getText().equals("") || vista.getTxtPrecio().getText().equals("") || vista.getTxtInventario().getText().equals("")) {
-                JOptionPane.showMessageDialog(vista, "Todos los campos son oblogatorios", "Informacion", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios", "Informacion", JOptionPane.WARNING_MESSAGE);
             } else {
                 boolean estadoTransaccion = agregarProducto(vista.getTxtNombre().getText(),
                         Double.parseDouble(vista.getTxtPrecio().getText()),
-                        Integer.parseInt(vista.getTxtPrecio().getText()));
+                        Integer.parseInt(vista.getTxtInventario().getText()));
                 if (estadoTransaccion == true) {
                     JOptionPane.showMessageDialog(vista, "El producto fue agregado exitosamente", "Informacion", JOptionPane.INFORMATION_MESSAGE);
                 }
@@ -195,6 +230,7 @@ public class ControladorProducto implements ActionListener {
             listarProductos();
         }
 
+        // Procedimiento a realizar cuando se presiona el botón borrar producto
         if (e.getSource() == vista.getBtnBorrarProducto()) {
             boolean estadoTransaccion = borrarProducto();
             listarProductos();
@@ -203,18 +239,29 @@ public class ControladorProducto implements ActionListener {
             }
         }
 
+        // Procedimiento a realizar cuando se presiona el botón informe
         if (e.getSource() == vista.getBtnInformes()) {
             generarInforme();
             listarProductos();
         }
-        /*
+        // Procedimiento a realizar cuando se presiona el botón actualizar
         if (e.getSource() == vista.getBtnActualizaProducto()) {
-            boolean estadoTransaccion = actualizarProducto(vista.getTxtNombre().getText(),
-                    Double.parseDouble(vista.getTxtPrecio().getText()),
-                    Integer.parseInt(vista.getTxtPrecio().getText()));
-            listar();
-
+            boolean estadoTransaccion = actualizarProductoParte1();
+            if (estadoTransaccion == false) {
+                JOptionPane.showMessageDialog(vista, "Seleccione un elemento de la tabla a ser actualizado", "Informacion", JOptionPane.WARNING_MESSAGE);
+            }
         }
-         */
+
+        if (e.getSource() == vista.getBtnActualizarProductoJFrameAct()) {
+            if (vista.getTxtNombre1().getText().equals("") || vista.getTxtPrecio1().getText().equals("") || vista.getTxtInventario1().getText().equals("")) {
+                JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios", "Informacion", JOptionPane.WARNING_MESSAGE);
+            } else {
+                boolean estadoTransaccion = actualizarProductoParte2();
+                listarProductos();
+                if (estadoTransaccion == true) {
+                    JOptionPane.showMessageDialog(vista, "El producto fue actualizado exitosamente", "Informacion", JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+        }
     }
 }
