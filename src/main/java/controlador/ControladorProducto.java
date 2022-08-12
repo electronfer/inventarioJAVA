@@ -56,6 +56,7 @@ public class ControladorProducto implements ActionListener {
         vista.getBtnAgregarProducto().addActionListener(this);
         vista.getBtnBorrarProducto().addActionListener(this);
         vista.getBtnInformes().addActionListener(this);
+        vista.getBtnActualizarProductoJFrameAct().addActionListener(this);
     }
 
     // Se listan los productos disponibles en la base de datos
@@ -259,6 +260,7 @@ public class ControladorProducto implements ActionListener {
                 boolean estadoTransaccion = actualizarProductoParte2();
                 listarProductos();
                 if (estadoTransaccion == true) {
+                    vista.getJFrame1().setVisible(false);
                     JOptionPane.showMessageDialog(vista, "El producto fue actualizado exitosamente", "Informacion", JOptionPane.INFORMATION_MESSAGE);
                 }
             }

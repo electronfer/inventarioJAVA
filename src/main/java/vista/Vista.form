@@ -23,11 +23,6 @@
           <Dimension value="[355, 277]"/>
         </Property>
       </Properties>
-      <AccessibilityProperties>
-        <Property name="AccessibleContext.accessibleParent" type="javax.accessibility.Accessible" editor="org.netbeans.modules.form.ComponentChooserEditor">
-          <ComponentRef name="Form"/>
-        </Property>
-      </AccessibilityProperties>
       <AuxValues>
         <AuxValue name="JavaCodeGenerator_SerializeTo" type="java.lang.String" value="Vista_jFrame1"/>
       </AuxValues>
@@ -104,7 +99,7 @@
                       <EmptySpace min="-2" pref="10" max="-2" attributes="0"/>
                       <Group type="103" groupAlignment="0" max="-2" attributes="0">
                           <Component id="txtInventario1" alignment="0" min="-2" pref="30" max="-2" attributes="0"/>
-                          <Component id="jLabel7" alignment="0" pref="30" max="32767" attributes="0"/>
+                          <Component id="jLabel7" alignment="0" max="32767" attributes="0"/>
                       </Group>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
                       <Component id="btnActualizarProductoJFrameAct" min="-2" pref="30" max="-2" attributes="0"/>
