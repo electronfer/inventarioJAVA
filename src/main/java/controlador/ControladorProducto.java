@@ -44,6 +44,7 @@ public class ControladorProducto implements ActionListener {
     RepositorioProducto repositorio;
     Vista vista;
 
+    // Constructor del controlador
     public ControladorProducto(RepositorioProducto repositorio, Vista vista) {
         this.repositorio = repositorio;
         this.vista = vista;
@@ -103,13 +104,18 @@ public class ControladorProducto implements ActionListener {
 
         JTable tabla = vista.getTblProductos();
         DefaultTableModel tableModel = (DefaultTableModel) tabla.getModel();
-        String nombreProducto = (String) tableModel.getValueAt(tabla.getSelectedRow(), 0);
 
-        // Se verifica primero si existe el producto para proceder a borrarlo
-        Long codigoProducto = verificarExistencia(nombreProducto);
-        if (codigoProducto != -1L) {
-            repositorio.deleteById(codigoProducto);
-            return true;
+        if (tabla.getSelectedRow() != -1) {
+            String nombreProducto = (String) tableModel.getValueAt(tabla.getSelectedRow(), 0);
+
+            // Se verifica primero si existe el producto para proceder a borrarlo
+            Long codigoProducto = verificarExistencia(nombreProducto);
+            if (codigoProducto != -1L) {
+                repositorio.deleteById(codigoProducto);
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return false;
         }
@@ -135,12 +141,12 @@ public class ControladorProducto implements ActionListener {
             promedio += listaProductos.get(indice).getPrecio();
             contProductos++;
 
-            // se obtiene el código del producto con el precio mayor
+            // se obtiene el producto con el precio mayor
             if (pMayor.getPrecio() < listaProductos.get(indice).getPrecio()) {
                 pMayor = listaProductos.get(indice);
             }
 
-            // se obtiene el código del producto con el precio menor
+            // se obtiene el producto con el precio menor
             if (pMenor.getPrecio() > listaProductos.get(indice).getPrecio()) {
                 pMenor = listaProductos.get(indice);
             }
@@ -153,7 +159,6 @@ public class ControladorProducto implements ActionListener {
         JOptionPane.showMessageDialog(vista, informe, "Informe", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // @TODO Agregar funcionalidad completa
     // Se agregan productos a la base de datos
     public boolean agregarProducto(String nombre, double precio, int inventario) {
 
@@ -171,9 +176,12 @@ public class ControladorProducto implements ActionListener {
 
     // Si se puede actualizar producto se debe retornar true, en otro caso false
     public boolean actualizarProductoParte1() {
+
         JTable tabla = vista.getTblProductos();
         DefaultTableModel tableModel = (DefaultTableModel) tabla.getModel();
+
         if (tabla.getSelectedRow() != -1) {
+
             String nombreProducto = (String) tableModel.getValueAt(tabla.getSelectedRow(), 0);
             Double precioProducto = (Double) tableModel.getValueAt(tabla.getSelectedRow(), 1);
             Integer inventarioProducto = (Integer) tableModel.getValueAt(tabla.getSelectedRow(), 2);
@@ -204,6 +212,7 @@ public class ControladorProducto implements ActionListener {
 
         if (codigoProducto != -1L) {
             Producto p = repositorio.findById(codigoProducto).get();
+            p.setNombre(vista.getTxtNombre1().getText());
             p.setPrecio(Double.parseDouble(vista.getTxtPrecio1().getText()));
             p.setInventario(Integer.parseInt(vista.getTxtInventario1().getText()));
             repositorio.save(p);
@@ -219,13 +228,18 @@ public class ControladorProducto implements ActionListener {
         // Procedimiento a realizar cuando se presiona el botón de agregar producto
         if (e.getSource() == vista.getBtnAgregarProducto()) {
             if (vista.getTxtNombre().getText().equals("") || vista.getTxtPrecio().getText().equals("") || vista.getTxtInventario().getText().equals("")) {
-                JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios", "Informacion", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios", "Advertencia", JOptionPane.WARNING_MESSAGE);
             } else {
                 boolean estadoTransaccion = agregarProducto(vista.getTxtNombre().getText(),
                         Double.parseDouble(vista.getTxtPrecio().getText()),
                         Integer.parseInt(vista.getTxtInventario().getText()));
                 if (estadoTransaccion == true) {
+                    vista.getTxtNombre().setText("");
+                    vista.getTxtPrecio().setText("");
+                    vista.getTxtInventario().setText("");
                     JOptionPane.showMessageDialog(vista, "El producto fue agregado exitosamente", "Informacion", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(vista, "Hubo un problema agregando productos", "Advertencia", JOptionPane.WARNING_MESSAGE);
                 }
             }
             listarProductos();
@@ -238,6 +252,9 @@ public class ControladorProducto implements ActionListener {
             if (estadoTransaccion == true) {
                 JOptionPane.showMessageDialog(vista, "El producto fue borrado exitosamente", "Informacion", JOptionPane.INFORMATION_MESSAGE);
             }
+            else{
+                JOptionPane.showMessageDialog(vista, "Hubo un problema borrando productos", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            }
         }
 
         // Procedimiento a realizar cuando se presiona el botón informe
@@ -245,22 +262,26 @@ public class ControladorProducto implements ActionListener {
             generarInforme();
             listarProductos();
         }
+
         // Procedimiento a realizar cuando se presiona el botón actualizar
         if (e.getSource() == vista.getBtnActualizaProducto()) {
             boolean estadoTransaccion = actualizarProductoParte1();
             if (estadoTransaccion == false) {
-                JOptionPane.showMessageDialog(vista, "Seleccione un elemento de la tabla a ser actualizado", "Informacion", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(vista, "Seleccione un elemento de la tabla a ser actualizado", "Advertencia", JOptionPane.WARNING_MESSAGE);
             }
         }
 
         if (e.getSource() == vista.getBtnActualizarProductoJFrameAct()) {
             if (vista.getTxtNombre1().getText().equals("") || vista.getTxtPrecio1().getText().equals("") || vista.getTxtInventario1().getText().equals("")) {
-                JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios", "Informacion", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(vista, "Todos los campos son obligatorios", "Advertencia", JOptionPane.WARNING_MESSAGE);
             } else {
                 boolean estadoTransaccion = actualizarProductoParte2();
                 listarProductos();
                 if (estadoTransaccion == true) {
                     vista.getJFrame1().setVisible(false);
+                    vista.getTxtNombre1().setText("");
+                    vista.getTxtPrecio1().setText("");
+                    vista.getTxtInventario1().setText("");
                     JOptionPane.showMessageDialog(vista, "El producto fue actualizado exitosamente", "Informacion", JOptionPane.INFORMATION_MESSAGE);
                 }
             }
